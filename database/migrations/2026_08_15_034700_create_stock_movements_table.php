@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->constrained('products')->cascadeOnUpdate()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnUpdate()->cascadeOnDelete();
-            $table->enum('type', ['in', 'out', 'adjusment']);
+            $table->enum('type', ['in', 'out', 'adjustment']);
             $table->integer('quantity');
             $table->integer('stock_before');
             $table->integer('stock_after');

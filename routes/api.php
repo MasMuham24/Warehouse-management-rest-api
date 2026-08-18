@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\StockMovementController;
 use App\Http\Controllers\Api\SupplierController;
 use Illuminate\Support\Facades\Route;
 
@@ -13,7 +14,6 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-
 // ==========================
 // Authenticated Routes
 // ==========================
@@ -23,7 +23,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Authentication
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-
 
     // ==========================
     // Category
@@ -36,7 +35,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/categories/{category}', [CategoryController::class, 'update'])->middleware('role:admin,staff');
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->middleware('role:admin');
 
-
     // ==========================
     // Product
     // ==========================
@@ -48,7 +46,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/products/{product}', [ProductController::class, 'update'])->middleware('role:admin,staff');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->middleware('role:admin,staff');
 
-
     // ==========================
     // Supplier
     // ==========================
@@ -59,4 +56,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->middleware('role:admin,staff');
     Route::patch('/suppliers/{supplier}', [SupplierController::class, 'update'])->middleware('role:admin,staff');
     Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->middleware('role:admin,staff');
+
+    // Stock Management
+    Route::get('/stock-movements', [StockMovementController::class, 'index'])->middleware('role:admin,staff,viewer');
+    Route::post('/stock-movements/in', [StockMovementController::class, 'storeIn'])->middleware('role:admin,staff');
+    Route::post('/stock-movements/out', [StockMovementController::class, 'storeOut'])->middleware('role:admin,staff');
+    Route::post('/stock-movements/adjustment', [StockMovementController::class, 'adjustment'])->middleware('role:admin,staff');
 });

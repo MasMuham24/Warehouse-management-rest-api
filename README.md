@@ -1,8 +1,8 @@
 # Warehouse Management REST API
 
-A RESTful API for managing warehouse operations, built with **Laravel 12**. The project focuses on clean API architecture, authentication, role-based authorization, resource transformation, validation, and scalable database relationships.
+A RESTful API for managing warehouse operations, built with **Laravel 12**. The project focuses on clean API architecture, authentication, role-based authorization, resource transformation, validation, database relationships, and realistic warehouse stock management.
 
-> **Status:** Version 1 — In Development
+> **Status:** Version 1 — Completed
 
 ## Tech Stack
 
@@ -23,6 +23,7 @@ A RESTful API for managing warehouse operations, built with **Laravel 12**. The 
 * Authenticated user profile
 * Laravel Sanctum token authentication
 * Secure password hashing
+* JSON API authentication responses
 
 ### Role-Based Authorization
 
@@ -39,8 +40,6 @@ New users registered through the API are assigned the `viewer` role by default.
 Users cannot assign themselves a different role during registration.
 
 ### Category Management
-
-The Category module currently provides:
 
 * List categories
 * View category details
@@ -59,6 +58,79 @@ The Category module currently provides:
 | Create category |  Yes  |  Yes  |   No   |
 | Update category |  Yes  |  Yes  |   No   |
 | Delete category |  Yes  |   No  |   No   |
+
+### Product Management
+
+* List products
+* View product details
+* Create product
+* Update product
+* Delete product
+* Category relationship
+* Supplier relationship
+* Request validation
+* API Resource transformation
+* Role-based authorization
+
+### Supplier Management
+
+* List suppliers
+* View supplier details
+* Create supplier
+* Update supplier
+* Delete supplier
+* Request validation
+* API Resource transformation
+* Role-based authorization
+
+### Stock Management
+
+The stock management module handles warehouse inventory movements.
+
+#### Stock In
+
+Adds stock to a product and records the movement history.
+
+```http
+POST /api/stock-movements/in
+```
+
+#### Stock Out
+
+Removes stock from a product while preventing the stock quantity from becoming negative.
+
+```http
+POST /api/stock-movements/out
+```
+
+#### Stock Adjustment
+
+Adjusts the product stock to a specific final quantity.
+
+```http
+POST /api/stock-movements/adjustment
+```
+
+#### Stock Movement History
+
+Provides a paginated history of stock movements.
+
+```http
+GET /api/stock-movements
+```
+
+Each stock movement records:
+
+* Product
+* User who performed the operation
+* Movement type
+* Quantity
+* Stock before
+* Stock after
+* Note
+* Timestamp
+
+Stock operations use database transactions and row locking to maintain data consistency during concurrent requests.
 
 ## API Endpoints
 
@@ -81,6 +153,37 @@ The Category module currently provides:
 | `PUT`    | `/api/categories/{id}` | Update category      | Admin, Staff         |
 | `PATCH`  | `/api/categories/{id}` | Update category      | Admin, Staff         |
 | `DELETE` | `/api/categories/{id}` | Delete category      | Admin                |
+
+### Products
+
+| Method   | Endpoint             | Description         | Roles                |
+| -------- | -------------------- | ------------------- | -------------------- |
+| `GET`    | `/api/products`      | Get all products    | Admin, Staff, Viewer |
+| `GET`    | `/api/products/{id}` | Get product details | Admin, Staff, Viewer |
+| `POST`   | `/api/products`      | Create product      | Admin, Staff         |
+| `PUT`    | `/api/products/{id}` | Update product      | Admin, Staff         |
+| `PATCH`  | `/api/products/{id}` | Update product      | Admin, Staff         |
+| `DELETE` | `/api/products/{id}` | Delete product      | Admin, Staff         |
+
+### Suppliers
+
+| Method   | Endpoint              | Description          | Roles                |
+| -------- | --------------------- | -------------------- | -------------------- |
+| `GET`    | `/api/suppliers`      | Get all suppliers    | Admin, Staff, Viewer |
+| `GET`    | `/api/suppliers/{id}` | Get supplier details | Admin, Staff, Viewer |
+| `POST`   | `/api/suppliers`      | Create supplier      | Admin, Staff         |
+| `PUT`    | `/api/suppliers/{id}` | Update supplier      | Admin, Staff         |
+| `PATCH`  | `/api/suppliers/{id}` | Update supplier      | Admin, Staff         |
+| `DELETE` | `/api/suppliers/{id}` | Delete supplier      | Admin, Staff         |
+
+### Stock Management
+
+| Method | Endpoint                          | Description                | Roles                |
+| ------ | --------------------------------- | -------------------------- | -------------------- |
+| `GET`  | `/api/stock-movements`            | Get stock movement history | Admin, Staff, Viewer |
+| `POST` | `/api/stock-movements/in`         | Add stock                  | Admin, Staff         |
+| `POST` | `/api/stock-movements/out`        | Remove stock               | Admin, Staff         |
+| `POST` | `/api/stock-movements/adjustment` | Adjust stock               | Admin, Staff         |
 
 ## Authentication
 
@@ -153,12 +256,12 @@ Accept: application/json
 
 A successful login returns a Sanctum access token.
 
-## Category API
+## Stock Management
 
-### Create Category
+### Stock In
 
 ```http
-POST /api/categories
+POST /api/stock-movements/in
 Authorization: Bearer YOUR_ACCESS_TOKEN
 Content-Type: application/json
 Accept: application/json
@@ -168,25 +271,97 @@ Request body:
 
 ```json
 {
-    "name": "Electronics",
-    "description": "Electronic equipment stored in the warehouse"
+    "product_id": 1,
+    "quantity": 10,
+    "note": "Initial stock"
 }
 ```
 
-### Response
+The operation increases the current product stock and records the stock movement.
+
+Example:
+
+```text
+Stock Before: 0
+Quantity:     10
+Stock After:  10
+```
+
+### Stock Out
+
+```http
+POST /api/stock-movements/out
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Content-Type: application/json
+Accept: application/json
+```
+
+Request body:
 
 ```json
 {
-    "success": true,
-    "message": "Category created successfully.",
-    "data": {
-        "id": 1,
-        "name": "Electronics",
-        "description": "Electronic equipment stored in the warehouse",
-        "created_at": "2026-08-15T07:00:00.000000Z",
-        "updated_at": "2026-08-15T07:00:00.000000Z"
-    }
+    "product_id": 1,
+    "quantity": 3,
+    "note": "Product sold"
 }
+```
+
+The API prevents stock from becoming negative.
+
+If the requested quantity exceeds the available stock, the API returns:
+
+```text
+422 Unprocessable Entity
+```
+
+with an `Insufficient stock` error.
+
+### Stock Adjustment
+
+```http
+POST /api/stock-movements/adjustment
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Content-Type: application/json
+Accept: application/json
+```
+
+Request body:
+
+```json
+{
+    "product_id": 1,
+    "quantity": 5,
+    "note": "Physical stock count"
+}
+```
+
+The `quantity` represents the **final stock quantity**, not the amount to add or subtract.
+
+Example:
+
+```text
+Current Stock: 7
+Adjustment:    5
+Final Stock:   5
+```
+
+### Stock History
+
+```http
+GET /api/stock-movements
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Accept: application/json
+```
+
+The endpoint returns paginated stock movement records.
+
+Example movement history:
+
+```text
+ID   TYPE          QTY   BEFORE   AFTER
+1    in            10      0       10
+2    out            3      10        7
+3    adjustment    5       7        5
 ```
 
 ## Validation
@@ -213,6 +388,8 @@ HTTP status:
 422 Unprocessable Entity
 ```
 
+Stock operations also validate available inventory before processing stock-out requests.
+
 ## HTTP Status Codes
 
 | Status Code | Meaning               |
@@ -227,7 +404,7 @@ HTTP status:
 
 ## Architecture
 
-The project follows Laravel's standard application structure with a clear separation between controllers, middleware, resources, models, and routes.
+The project follows Laravel's standard application structure with separation between controllers, middleware, resources, models, and routes.
 
 ```text
 app/
@@ -235,17 +412,26 @@ app/
 │   ├── Controllers/
 │   │   └── Api/
 │   │       ├── AuthController.php
-│   │       └── CategoryController.php
+│   │       ├── CategoryController.php
+│   │       ├── ProductController.php
+│   │       ├── SupplierController.php
+│   │       └── StockMovementController.php
 │   │
 │   ├── Middleware/
 │   │   └── RoleMiddleware.php
 │   │
 │   └── Resources/
-│       └── CategoryResource.php
+│       ├── CategoryResource.php
+│       ├── ProductResource.php
+│       ├── SupplierResource.php
+│       └── StockMovementResource.php
 │
 ├── Models/
 │   ├── User.php
-│   └── Category.php
+│   ├── Category.php
+│   ├── Product.php
+│   ├── Supplier.php
+│   └── StockMovement.php
 │
 database/
 ├── migrations/
@@ -257,9 +443,7 @@ routes/
 
 ## Database Relationships
 
-The current database design is prepared for the warehouse management domain.
-
-Current relationship:
+The current database design represents the core warehouse management domain:
 
 ```text
 Category
@@ -268,27 +452,122 @@ Category
           │
           ▼
        Product
+          │
+          ├── belongsTo Supplier
+          │
+          └── hasMany StockMovement
+                         │
+                         └── belongsTo User
 ```
 
-The `Product` entity will be implemented in the next development stage.
+### Main Entities
 
-## Planned Features
+```text
+User
+ └── Stock Movements
 
-The following modules are planned for V1:
+Category
+ └── Products
 
-* [ ] Product Management
-* [ ] Supplier Management
-* [ ] Stock Management
-* [ ] Stock In
-* [ ] Stock Out
-* [ ] Stock History
-* [ ] User Management
-* [ ] Role Management
-* [ ] Search and Filtering
-* [ ] Pagination
-* [ ] API Resources
-* [ ] Postman Collection
-* [ ] API Documentation
+Supplier
+ └── Products
+
+Product
+ └── Stock Movements
+
+StockMovement
+ ├── Product
+ └── User
+```
+
+## Data Consistency
+
+Stock operations use database transactions to ensure that product stock and stock movement history remain synchronized.
+
+The stock management implementation also uses row-level locking when updating product stock:
+
+```php
+Product::lockForUpdate()
+```
+
+This helps prevent inconsistent stock values when multiple stock operations are processed concurrently.
+
+## Testing
+
+API endpoints are tested using **Postman**.
+
+Current testing coverage includes:
+
+* Authentication
+* Sanctum token authentication
+* Role-based authorization
+* Category CRUD
+* Product CRUD
+* Supplier CRUD
+* Stock In
+* Stock Out
+* Stock Adjustment
+* Stock movement history
+* Insufficient stock validation
+* Request validation
+* HTTP status codes
+* Protected API endpoints
+
+All core V1 features have been manually tested and verified through Postman.
+
+## Development Progress
+
+### Version 1 — Completed
+
+* [x] Laravel project setup
+* [x] REST API structure
+* [x] Laravel Sanctum authentication
+* [x] User registration
+* [x] User login
+* [x] User logout
+* [x] Authenticated user endpoint
+* [x] User roles
+* [x] Role middleware
+* [x] Category CRUD
+* [x] Category API Resource
+* [x] Category validation
+* [x] Category authorization
+* [x] Product CRUD
+* [x] Product API Resource
+* [x] Product validation
+* [x] Product authorization
+* [x] Supplier CRUD
+* [x] Supplier API Resource
+* [x] Supplier validation
+* [x] Supplier authorization
+* [x] Stock In
+* [x] Stock Out
+* [x] Stock Adjustment
+* [x] Stock movement history
+* [x] Stock validation
+* [x] Stock transactions
+* [x] Stock row locking
+* [x] Stock API Resource
+* [x] Postman testing
+
+## Future Development
+
+Version 1 is considered complete.
+
+Potential features for future versions may include:
+
+* Purchase Order Management
+* Warehouse Management
+* Multi-Warehouse Inventory
+* Stock Transfer
+* Low Stock Alerts
+* Inventory Reports
+* Advanced Search and Filtering
+* Dashboard Statistics
+* User Management
+* Activity Logs
+* API Documentation
+* Automated Feature Tests
 
 ## Installation
 
@@ -348,44 +627,26 @@ The API will be available at:
 http://127.0.0.1:8000/api
 ```
 
-## Testing
+## Environment Configuration
 
-API endpoints can be tested using **Postman**.
+Example database configuration:
 
-Current testing coverage includes:
+```env
+APP_NAME="Warehouse Management API"
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
 
-* Authentication
-* Sanctum token authentication
-* Role-based authorization
-* Category CRUD
-* Request validation
-* HTTP status codes
-* Protected API endpoints
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=warehouse_management
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-## Development Progress
-
-### Version 1
-
-* [x] Laravel project setup
-* [x] REST API structure
-* [x] Laravel Sanctum authentication
-* [x] User registration
-* [x] User login
-* [x] User logout
-* [x] Authenticated user endpoint
-* [x] User roles
-* [x] Role middleware
-* [x] Category CRUD
-* [x] Category API Resource
-* [x] Category validation
-* [x] Category authorization
-* [ ] Product CRUD
-* [ ] Supplier CRUD
-* [ ] Stock management
-* [ ] Stock history
-* [ ] User management
-* [ ] Postman collection
-* [ ] API documentation
+Never commit the `.env` file or expose sensitive credentials in the repository.
 
 ## Project Goals
 
@@ -400,6 +661,7 @@ The main goals are:
 * Implement reusable API Resources
 * Apply proper request validation
 * Develop realistic warehouse business logic
+* Maintain consistent inventory data
 * Provide a strong foundation for future frontend integration
 
 ## Author
