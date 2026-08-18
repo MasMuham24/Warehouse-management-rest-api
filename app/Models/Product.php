@@ -21,7 +21,10 @@ class Product extends Model
         'minimum_stock',
     ];
 
-    protected $casts = ['price' => 'decimal:12'];
+    protected $casts = [
+        'price' => 'decimal:2',
+    ];
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
