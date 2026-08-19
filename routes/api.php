@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\StockMovementController;
 use App\Http\Controllers\Api\SupplierController;
@@ -62,4 +63,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/stock-movements/in', [StockMovementController::class, 'storeIn'])->middleware('role:admin,staff');
     Route::post('/stock-movements/out', [StockMovementController::class, 'storeOut'])->middleware('role:admin,staff');
     Route::post('/stock-movements/adjustment', [StockMovementController::class, 'adjustment'])->middleware('role:admin,staff');
+
+    // Dashboard Api
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('role:admin,staff,viewer');
+    Route::get('/dashboard/movements', [DashboardController::class, 'movements']); 
 });

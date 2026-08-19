@@ -85,7 +85,7 @@ Users cannot assign themselves a different role during registration.
 
 ### Stock Management
 
-The stock management module handles warehouse inventory movements.
+The stock management module handles warehouse inventory movements and maintains stock consistency.
 
 #### Stock In
 
@@ -131,6 +131,77 @@ Each stock movement records:
 * Timestamp
 
 Stock operations use database transactions and row locking to maintain data consistency during concurrent requests.
+
+### Dashboard
+
+The API provides dashboard statistics for warehouse monitoring.
+
+Dashboard data includes:
+
+* Total products
+* Total categories
+* Total suppliers
+* Total stock
+* Low stock product count
+* Total stock in
+* Total stock out
+* Recent stock movements
+* Movement notes
+* Movement timestamps
+
+Dashboard endpoint:
+
+```http
+GET /api/dashboard
+```
+
+### Low Stock Monitoring
+
+The dashboard calculates products where the current stock is less than or equal to the configured minimum stock level.
+
+```text
+stock <= minimum_stock
+```
+
+The dashboard returns the number of products currently considered low stock.
+
+### Stock Movement Statistics
+
+Movement statistics can be filtered by a predefined period.
+
+Supported periods:
+
+* `7` days
+* `30` days
+* `90` days
+
+Example:
+
+```http
+GET /api/dashboard/movements?period=7
+```
+
+The response groups stock movement data by date and separates stock-in and stock-out quantities.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "data": {
+        "period": "7",
+        "movements": [
+            {
+                "date": "2026-08-18",
+                "stock_in": "63",
+                "stock_out": "60"
+            }
+        ]
+    }
+}
+```
+
+This endpoint is designed to provide data for future dashboard visualizations such as stock movement charts.
 
 ## API Endpoints
 
@@ -184,6 +255,15 @@ Stock operations use database transactions and row locking to maintain data cons
 | `POST` | `/api/stock-movements/in`         | Add stock                  | Admin, Staff         |
 | `POST` | `/api/stock-movements/out`        | Remove stock               | Admin, Staff         |
 | `POST` | `/api/stock-movements/adjustment` | Adjust stock               | Admin, Staff         |
+
+### Dashboard
+
+| Method | Endpoint                             | Description                        | Authentication |
+| ------ | ------------------------------------ | ---------------------------------- | -------------- |
+| `GET`  | `/api/dashboard`                     | Get warehouse dashboard statistics | Required       |
+| `GET`  | `/api/dashboard/movements?period=7`  | Get movement statistics            | Required       |
+| `GET`  | `/api/dashboard/movements?period=30` | Get 30-day movement statistics     | Required       |
+| `GET`  | `/api/dashboard/movements?period=90` | Get 90-day movement statistics     | Required       |
 
 ## Authentication
 
@@ -314,7 +394,7 @@ If the requested quantity exceeds the available stock, the API returns:
 422 Unprocessable Entity
 ```
 
-with an `Insufficient stock` error.
+with an insufficient stock error.
 
 ### Stock Adjustment
 
@@ -364,6 +444,77 @@ ID   TYPE          QTY   BEFORE   AFTER
 3    adjustment    5       7        5
 ```
 
+## Dashboard
+
+### Dashboard Summary
+
+```http
+GET /api/dashboard
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Accept: application/json
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "data": {
+        "total_products": 20,
+        "total_categories": 5,
+        "total_suppliers": 6,
+        "total_stock": "870",
+        "low_stock_products": 4,
+        "stock_in": "63",
+        "stock_out": "60",
+        "recent_movements": [
+            {
+                "id": 6,
+                "product": "Laptop Lenovo",
+                "type": "out",
+                "quantity": 10,
+                "note": "tambahan stock",
+                "created_at": "2026-08-18T07:24:21.000000Z"
+            }
+        ]
+    }
+}
+```
+
+### Movement Statistics
+
+```http
+GET /api/dashboard/movements?period=7
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Accept: application/json
+```
+
+The `period` parameter accepts:
+
+```text
+7
+30
+90
+```
+
+Example:
+
+```json
+{
+    "success": true,
+    "data": {
+        "period": "7",
+        "movements": [
+            {
+                "date": "2026-08-18",
+                "stock_in": "63",
+                "stock_out": "60"
+            }
+        ]
+    }
+}
+```
+
 ## Validation
 
 The API uses Laravel's built-in validation system.
@@ -390,6 +541,8 @@ HTTP status:
 
 Stock operations also validate available inventory before processing stock-out requests.
 
+The dashboard movement statistics endpoint validates the requested period and only accepts supported values.
+
 ## HTTP Status Codes
 
 | Status Code | Meaning               |
@@ -415,7 +568,8 @@ app/
 │   │       ├── CategoryController.php
 │   │       ├── ProductController.php
 │   │       ├── SupplierController.php
-│   │       └── StockMovementController.php
+│   │       ├── StockMovementController.php
+│   │       └── DashboardController.php
 │   │
 │   ├── Middleware/
 │   │   └── RoleMiddleware.php
@@ -512,62 +666,54 @@ Current testing coverage includes:
 * Request validation
 * HTTP status codes
 * Protected API endpoints
+* Dashboard summary
+* Low stock calculation
+* Recent stock movements
+* Movement statistics
+* Movement period validation
 
-All core V1 features have been manually tested and verified through Postman.
+Planned technologies:
 
-## Development Progress
+* **React**
+* **Vite**
+* **Bootstrap**
+* **Axios**
+* **Chart.js**
 
-### Version 1 — Completed
+Potential V2 features:
 
-* [x] Laravel project setup
-* [x] REST API structure
-* [x] Laravel Sanctum authentication
-* [x] User registration
-* [x] User login
-* [x] User logout
-* [x] Authenticated user endpoint
-* [x] User roles
-* [x] Role middleware
-* [x] Category CRUD
-* [x] Category API Resource
-* [x] Category validation
-* [x] Category authorization
-* [x] Product CRUD
-* [x] Product API Resource
-* [x] Product validation
-* [x] Product authorization
-* [x] Supplier CRUD
-* [x] Supplier API Resource
-* [x] Supplier validation
-* [x] Supplier authorization
-* [x] Stock In
-* [x] Stock Out
-* [x] Stock Adjustment
-* [x] Stock movement history
-* [x] Stock validation
-* [x] Stock transactions
-* [x] Stock row locking
-* [x] Stock API Resource
-* [x] Postman testing
+* React dashboard
+* Authentication interface
+* Role-based frontend navigation
+* Product management interface
+* Category management interface
+* Supplier management interface
+* Stock In/Out interface
+* Stock adjustment interface
+* Stock movement history
+* Low stock indicators
+* Interactive movement charts
+* Dashboard statistics
+* Search and filtering
+* Pagination
+* Responsive warehouse management interface
 
-## Future Development
+The Laravel REST API will remain the backend service for the React application.
 
-Version 1 is considered complete.
+## Future Backend Development
 
-Potential features for future versions may include:
+Potential future backend improvements include:
 
 * Purchase Order Management
-* Warehouse Management
 * Multi-Warehouse Inventory
 * Stock Transfer
-* Low Stock Alerts
 * Inventory Reports
 * Advanced Search and Filtering
-* Dashboard Statistics
 * User Management
 * Activity Logs
 * API Documentation
 * Automated Feature Tests
+* Notification and Low Stock Alert System
 
 ## Installation
 
@@ -662,6 +808,7 @@ The main goals are:
 * Apply proper request validation
 * Develop realistic warehouse business logic
 * Maintain consistent inventory data
+* Provide dashboard-level warehouse statistics
 * Provide a strong foundation for future frontend integration
 
 ## Author
